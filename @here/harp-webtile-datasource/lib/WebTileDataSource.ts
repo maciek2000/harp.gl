@@ -274,6 +274,22 @@ export class WebTileDataSource extends DataSource {
             `https://1.${baseHostName}/maptile/2.1/copyright/${mapId}` +
             `?output=json&apikey=${apikey}`;
         this.m_copyrightProvider = new UrlCopyrightProvider(url, baseScheme);
+        this.maxZoomLevel = 10;
+    }
+
+    /** @override */
+    getDisplayZoomLevel(zoomLevel: number){
+        return zoomLevel <= 5 ? 1 : NaN;
+    }
+
+    /** @override */
+    canGetTile(zoomLevel: number) {
+        return zoomLevel === 1;
+    }
+
+    /** @override */
+    shouldSubdivide(zoomLevel: number) {
+        return zoomLevel === 0;
     }
 
     /** @override */
