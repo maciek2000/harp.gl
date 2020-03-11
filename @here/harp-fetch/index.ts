@@ -71,6 +71,7 @@ function fetchWithFileSupport(input: RequestInfo, init?: RequestInit): Promise<R
             fs.readFile(actualUrl, (error, buffer) => {
                 if (error) {
                     reject(new Error(`failed to read file ${actualUrl}: ${error}`));
+                    return;
                 }
 
                 const response = {
