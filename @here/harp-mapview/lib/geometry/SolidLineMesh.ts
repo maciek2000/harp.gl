@@ -284,7 +284,14 @@ function intersectFeature(
         if (distance < raycaster.near || distance > raycaster.far) {
             continue;
         }
-
+        geometry.userData.debug.push({
+            line: line.clone().applyMatrix4(mesh.matrixWorld),
+            ray: new THREE.Ray(
+                interLineWorld.clone(),
+                vExt.clone().transformDirection(mesh.matrixWorld)
+            ),
+            length: halfWidth
+        });
         intersects.push({
             distance,
             point: interLineWorld.clone(),
@@ -378,6 +385,8 @@ export class SolidLineMesh extends THREE.Mesh {
 
         tmpInverseMatrix.getInverse(matrixWorld);
         const localRay = tmpRay.copy(raycaster.ray).applyMatrix4(tmpInverseMatrix);
+
+        geometry.userData.debug = [];
 
         // Test intersection of ray with each of the features within the mesh.
         if (!mesh.userData.feature) {
