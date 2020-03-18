@@ -23,11 +23,11 @@ import {
     EarthConstants,
     GeoCoordinates,
     GeoCoordLike,
+    isGeoCoordinatesLike,
     mercatorProjection,
     Projection,
     ProjectionType,
-    TilingScheme,
-    isGeoCoordinatesLike
+    TilingScheme
 } from "@here/harp-geoutils";
 import {
     assert,
@@ -632,7 +632,7 @@ const MapViewDefaults = {
 /**
  * Parameters for MapView.lookAt
  */
-interface LookAtParams {
+export interface LookAtParams {
     /**
      * Target/look at point of the MapView
      */
@@ -1496,12 +1496,9 @@ export class MapView extends THREE.EventDispatcher {
      * @param projection The [[Projection]] instance to use.
      */
     set projection(projection: Projection) {
-        // The geo center must be reset when changing the projection, because the
-        // camera's position is based on the projected geo center.
-
-        const attitude = MapViewUtils.extractAttitude(this, this.camera);
-        const pitchDeg = THREE.MathUtils.radToDeg(attitude.pitch);
-        const headingDeg = -THREE.MathUtils.radToDeg(attitude.yaw);
+        // Remember tilt and heading before setting the projection.
+        const tilt = this.tilt;
+        const heading = this.heading;
 
         this.m_visibleTileSetOptions.projection = projection;
         this.updatePolarDataSource();
@@ -1509,7 +1506,7 @@ export class MapView extends THREE.EventDispatcher {
         this.textElementsRenderer.clearRenderStates();
         this.m_visibleTiles = this.createVisibleTileSet();
 
-        this.lookAt(this.m_targetGeoPos, this.m_targetDistance, pitchDeg, headingDeg);
+        this.lookAtImpl({ tilt, heading });
     }
 
     /**
@@ -3290,6 +3287,8 @@ export class MapView extends THREE.EventDispatcher {
         this.m_options.target = GeoCoordinates.fromObject(
             getOptionValue(this.m_options.target, MapViewDefaults.target)
         );
+        // ensure that look at target has height of 0
+        (this.m_options.target as GeoCoordinates).altitude = 0;
         this.m_options.tilt = getOptionValue(this.m_options.tilt, MapViewDefaults.tilt);
 
         this.m_options.heading = getOptionValue(this.m_options.heading, MapViewDefaults.heading);
