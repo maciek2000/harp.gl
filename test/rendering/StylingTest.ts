@@ -159,8 +159,8 @@ function mapViewFeaturesRenderingTest(
             );
 
             const lookAt = mergeWithOptions(defaultLookAt, options.lookAt);
-
             mapView.lookAt(lookAt);
+
             if (options.grid !== undefined) {
                 const gridDivisions = 4;
                 const gridSize = options.grid * gridDivisions;
