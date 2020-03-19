@@ -468,9 +468,8 @@ export class VisibleTileSet {
         if (minElevation !== undefined) {
             this.options.clipPlanesEvaluator.minElevation = minElevation;
         }
-        this.m_viewRange = this.options.clipPlanesEvaluator.evaluateClipPlanes(
-            this.m_frustumIntersection.mapView
-        );
+        const { camera, projection } = this.m_frustumIntersection.mapView;
+        this.m_viewRange = this.options.clipPlanesEvaluator.evaluateClipPlanes(camera, projection);
         return this.m_viewRange;
     }
 

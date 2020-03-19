@@ -1563,18 +1563,6 @@ export class MapView extends THREE.EventDispatcher {
         return this.m_targetWorldPos;
     }
 
-    /** @internal
-     * Get distance from camera to the point of focus in world units.
-     *
-     * @note If camera does not point to any ground anymore the last focus point distance is
-     * then returned.
-     *
-     * @returns Last known focus point distance.
-     */
-    get targetDistance(): number {
-        return this.m_targetDistance;
-    }
-
     /**
      * Get object describing frustum planes distances and min/max visibility range for actual
      * camera setup.
