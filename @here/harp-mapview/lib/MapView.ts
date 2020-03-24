@@ -281,7 +281,7 @@ export enum MapViewPowerPreference {
 /**
  * User configuration for the [[MapView]].
  */
-export interface MapViewOptions extends TextElementsRendererOptions, LookAtParams {
+export interface MapViewOptions extends TextElementsRendererOptions, Partial<LookAtParams> {
     /**
      * The canvas element used to render the scene.
      */
@@ -642,14 +642,14 @@ export interface LookAtParams {
      * @default `new GeoCoordinates(25, 0)` in [[MapView.constructor]] context.
      * @default [[MapView.target]] in [[MapView.lookAt]] context.
      */
-    target?: GeoCoordLike;
+    target: GeoCoordLike;
 
     /**
      * Zoomlevel of the MapView.
      * @default 5 in [[MapView.constructor]] context.
      * @default [[MapView.zoomLevel]] in [[MapView.lookAt]] context.
      */
-    zoomLevel?: number;
+    zoomLevel: number;
 
     /**
      * Tilt angle in degrees. 0 is top down view.
@@ -657,14 +657,14 @@ export interface LookAtParams {
      * @default [[MapView.tilt]] in [[MapView.lookAt]] context.
      * @note Maximum supported tilt is 89°
      */
-    tilt?: number;
+    tilt: number;
 
     /**
      * Heading angle in degrees and clockwise. 0 is north-up.
      * @default 0 in [[MapView.constructor]] context.
      * @default [[MapView.heading]] in [[MapView.lookAt]] context.
      */
-    heading?: number;
+    heading: number;
 }
 
 /**
@@ -1991,10 +1991,10 @@ export class MapView extends THREE.EventDispatcher {
      * Adjusts the camera to look at a given geo coordinate with tilt and heading angles.
      * @param params LookAtParams
      */
-    lookAt(params: LookAtParams): void;
+    lookAt(params: Partial<LookAtParams>): void;
 
     lookAt(
-        targetOrParams: GeoCoordLike | LookAtParams,
+        targetOrParams: GeoCoordLike | Partial<LookAtParams>,
         distance?: number,
         tiltDeg?: number,
         headingDeg?: number
@@ -2005,7 +2005,7 @@ export class MapView extends THREE.EventDispatcher {
                     ? MapViewUtils.calculateZoomLevelFromDistance(this, distance)
                     : undefined;
 
-            const params: LookAtParams = {
+            const params: Partial<LookAtParams> = {
                 target: targetOrParams,
                 zoomLevel,
                 tilt: tiltDeg,
@@ -2013,7 +2013,7 @@ export class MapView extends THREE.EventDispatcher {
             };
             this.lookAtImpl(params);
         } else if (typeof targetOrParams === "object") {
-            this.lookAtImpl(targetOrParams as LookAtParams);
+            this.lookAtImpl(targetOrParams as Partial<LookAtParams>);
         }
     }
 
@@ -2614,7 +2614,7 @@ export class MapView extends THREE.EventDispatcher {
         };
     }
 
-    private lookAtImpl(params: LookAtParams): void {
+    private lookAtImpl(params: Partial<LookAtParams>): void {
         const zoomLevel = THREE.MathUtils.clamp(
             getOptionValue(params.zoomLevel, this.zoomLevel),
             this.m_minZoomLevel,
