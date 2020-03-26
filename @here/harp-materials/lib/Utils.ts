@@ -37,6 +37,24 @@ ${tabChar}#include <${insertedShaderName}>`
     return result;
 }
 
+
+export function replaceShaderInclude(
+    shaderContent: string,
+    shaderName: string,
+    insertedShaderName: string,
+    addTab?: boolean
+) {
+
+    const tabChar = addTab === true ? "\t" : "";
+
+    const result = shaderContent.replace(
+        `#include <${shaderName}>`,
+        `
+`
+    );
+    return result;
+}
+
 export interface ForcedBlending {
     /**
      * This material has `blending` always enabled regardless of `opacity` setting.s

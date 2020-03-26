@@ -1230,6 +1230,109 @@ export class MapMeshStandardMaterial extends THREE.MeshStandardMaterial
     // Mixin declarations end -----------------------------------------------------------
 }
 
+export class MapMeshFlatStandardMaterial extends THREE.ShaderMaterial {
+    /**
+     * This is required for three.js to set the correct uniform values (see
+     * WebGLRenderer.js:setProgram), because we are copying the standard material and changing just
+     * the fragment shader. This is a good way to simplify setup of this class.
+     */
+    isMeshStandardMaterial = true;
+
+    /**
+     * Constructs a new `MapMeshFlatStandardMaterial`. Note, the real initialization is done in the
+     * overriden method [[setValues]].
+     *
+     * @param params parameters used to construct the material.
+     */
+    constructor(params?: THREE.MeshStandardMaterialParameters & FadingFeatureParameters) {
+        super(params);
+    }
+
+    /** @override */
+    setValues(params?: THREE.MeshStandardMaterialParameters & FadingFeatureParameters) {
+        // This doesn't work in the contstructor, because the super(params) call takes the params
+        // and sets them on this object (see the call to setValues in the contstructor), this in
+        // turn calls the get/set methods which require the uniforms, however with Typescript, it
+        // isn't possible to call any method before the call to super(params).
+        this.uniforms = THREE.UniformsUtils.merge([
+            THREE.ShaderLib.standard.uniforms,
+            {
+                shadowStrength: { value: 1 }
+            }
+        ]);
+        this.extensions.derivatives = true;
+        this.lights = true;
+        this.shadowStrength = 0.45;
+        this.vertexShader = THREE.ShaderChunk.meshphysical_vert;
+        this.fragmentShader = THREE.ShaderChunk.meshphysical_frag.replace(
+            "#include <lights_physical_pars_fragment>",
+            `uniform float shadowStrength;
+            struct PhysicalMaterial {
+                vec3	diffuseColor;
+                float	specularRoughness;
+                vec3	specularColor;
+            };
+
+            #define DEFAULT_SPECULAR_COEFFICIENT 0.04
+
+            void RE_Direct_Physical( const in IncidentLight directLight,
+                const in GeometricContext geometry,
+                const in PhysicalMaterial material,
+                inout ReflectedLight reflectedLight ) {
+                // directLight.color is the light color * shadow, internally three.js uses a step function, so
+                // this value is either the light color or black. in order to lighten up the shadows, we
+                // subtract 1 from the light color, and then multiple by the shadow strength and the diffuse
+                // color, a shadow strength of 0 means that there is no shadow and a strength of 1 means that
+                // the shadow is black.
+                #if defined(USE_SHADOWMAP)
+                    reflectedLight.directDiffuse = directLight.color * material.diffuseColor +
+                    (vec3(1,1,1)-directLight.color) * (1.0-shadowStrength) * material.diffuseColor;
+                #else
+                    reflectedLight.directDiffuse = material.diffuseColor;
+                #endif
+            }
+
+            void RE_IndirectDiffuse_Physical( const in vec3 irradiance,
+                const in GeometricContext geometry,
+                const in PhysicalMaterial material,
+                inout ReflectedLight reflectedLight ) {
+                    // Kept deliberately empty
+            }
+            void RE_IndirectSpecular_Physical( const in vec3 radiance,
+                const in vec3 irradiance,
+                const in vec3 clearcoatRadiance,
+                const in GeometricContext geometry,
+                const in PhysicalMaterial material,
+                inout ReflectedLight reflectedLight) {
+                        // Kept deliberately empty
+            }
+
+            #define RE_Direct               RE_Direct_Physical
+            #define RE_IndirectDiffuse      RE_IndirectDiffuse_Physical
+            #define RE_IndirectSpecular     RE_IndirectSpecular_Physical
+            `
+        );
+
+        if (params !== undefined) {
+            super.setValues(params);
+        }
+    }
+
+    get color(): THREE.Color {
+        return this.uniforms.diffuse.value;
+    }
+    set color(value: THREE.Color) {
+        this.uniforms.diffuse.value.copy(value);
+    }
+
+    get shadowStrength(): number {
+        return this.uniforms.shadowStrength.value;
+    }
+    set shadowStrength(strength: number) {
+        this.uniforms.shadowStrength.value = strength;
+    }
+}
+
 /**
  * Finish the classes MapMeshBasicMaterial and MapMeshStandardMaterial by assigning them the actual
  * implementations of the mixed in functions.

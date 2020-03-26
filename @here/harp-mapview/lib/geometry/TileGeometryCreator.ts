@@ -55,7 +55,8 @@ import {
     MapMeshDepthMaterial,
     MapMeshStandardMaterial,
     setShaderMaterialDefine,
-    SolidLineMaterial
+    SolidLineMaterial,
+    MapMeshFlatStandardMaterial
 } from "@here/harp-materials";
 import { ContextualArabicConverter } from "@here/harp-text-canvas";
 import { assert, LoggerManager } from "@here/harp-utils";
@@ -834,11 +835,15 @@ export class TileGeometryCreator {
                 if (isExtrudedPolygonTechnique(technique)) {
                     object.castShadow = mapView.shadowsEnabled;
                     object.receiveShadow = mapView.shadowsEnabled;
-                } else if (isStandardTechnique(technique)) {
+                } else if (isStandardTechnique(technique) || isFillTechnique(technique)) {
                     object.receiveShadow = mapView.shadowsEnabled;
                 }
 
-                if (isExtrudedPolygonTechnique(technique) || isFillTechnique(technique)) {
+                if (
+                    isExtrudedPolygonTechnique(technique) ||
+                    isFillTechnique(technique) ||
+                    isStandardTechnique(technique)
+                ) {
                     // filled polygons are normal meshes, and need transparency only when fading or
                     // dynamic properties is defined.
                     const hasDynamicPrimaryColor =
@@ -1323,11 +1328,11 @@ export class TileGeometryCreator {
      */
     addGroundPlane(tile: Tile, renderOrder: number) {
         const shadowsEnabled = tile.mapView.shadowsEnabled;
-        const material = this.createGroundPlaneMaterial(
-            new THREE.Color(tile.mapView.clearColor),
-            shadowsEnabled,
-            tile.mapView.projection.type === ProjectionType.Spherical
-        );
+        const material = new MapMeshFlatStandardMaterial({
+            color: tile.mapView.clearColor,
+            visible: true,
+            depthWrite: tile.mapView.projection.type === ProjectionType.Spherical
+        });
         const mesh = this.createGroundPlane(tile, material, false, shadowsEnabled);
         mesh.receiveShadow = shadowsEnabled;
         mesh.renderOrder = renderOrder;
@@ -1402,27 +1407,6 @@ export class TileGeometryCreator {
                 }
             }
         });
-    }
-
-    private createGroundPlaneMaterial(
-        color: THREE.Color,
-        shadowsEnabled: boolean,
-        depthWrite: boolean
-    ): THREE.Material {
-        if (shadowsEnabled) {
-            return new MapMeshStandardMaterial({
-                color,
-                visible: true,
-                depthWrite,
-                roughness: 1.0
-            });
-        } else {
-            return new MapMeshBasicMaterial({
-                color,
-                visible: true,
-                depthWrite
-            });
-        }
     }
 
     private setupTerrainMaterial(

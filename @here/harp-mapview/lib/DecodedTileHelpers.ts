@@ -35,7 +35,8 @@ import {
     HighPrecisionLineMaterial,
     MapMeshBasicMaterial,
     MapMeshStandardMaterial,
-    SolidLineMaterial
+    SolidLineMaterial,
+    MapMeshFlatStandardMaterial
 } from "@here/harp-materials";
 import { LoggerManager } from "@here/harp-utils";
 import * as THREE from "three";
@@ -387,7 +388,10 @@ export function getMaterialConstructor(technique: Technique): MaterialConstructo
                 ? MapMeshStandardMaterial
                 : MapMeshBasicMaterial;
 
+        case "fill":
         case "standard":
+            return MapMeshFlatStandardMaterial;
+
         case "terrain":
         case "extruded-polygon":
             return MapMeshStandardMaterial;
@@ -395,9 +399,6 @@ export function getMaterialConstructor(technique: Technique): MaterialConstructo
         case "dashed-line":
         case "solid-line":
             return SolidLineMaterial;
-
-        case "fill":
-            return MapMeshBasicMaterial;
 
         case "squares":
             return THREE.PointsMaterial;
