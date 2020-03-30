@@ -14,6 +14,7 @@ import { DisplacementFeature, DisplacementFeatureParameters } from "./Displaceme
 import { ExtrusionFeatureDefs } from "./MapMeshMaterialsDefs";
 import extrusionShaderChunk from "./ShaderChunks/ExtrusionChunks";
 import fadingShaderChunk from "./ShaderChunks/FadingChunks";
+import { correctShadowChunk } from "./ShaderChunks/ShadowChunks";
 
 const emptyTexture = new THREE.Texture();
 
@@ -40,6 +41,18 @@ export interface FadingFeatureParameters {
      * Distance to the camera (range: `[0.0, 1.0]`) from which the objects are transparent.
      */
     fadeFar?: number;
+}
+
+/**
+ * Parameter used to control patching the standard material shader to ensure that the materials
+ * color isn't affected by the light direction, only valid for techniques that are "fill"
+ */
+export interface ShadowFeatureParameters {
+    /**
+     * Whether the diffuse light component is removed (i.e. the materials color is therefore just
+     * the ambient + shadow).
+     */
+    removeDiffuseLight?: boolean;
 }
 
 /**
@@ -715,6 +728,41 @@ export class FadingFeatureMixin implements FadingFeature {
     }
 }
 
+/**
+ * Class to apply the code necessary to customize the standard shader to remove the diffuse light
+ * component.
+ */
+export class ShadowFeatureMixin {
+    onBeforeCompile?: CompileCallback;
+    private m_removeDiffuseLight?: boolean;
+
+    protected applyShadowParameters(params?: ShadowFeatureParameters) {
+        this.m_removeDiffuseLight = params?.removeDiffuseLight;
+        if (this.m_removeDiffuseLight === true) {
+            this.onBeforeCompile = chainCallbacks(this.onBeforeCompile, shader => {
+                shader.fragmentShader = THREE.ShaderChunk.meshphysical_frag.replace(
+                    "#include <lights_physical_pars_fragment>",
+                    correctShadowChunk
+                );
+            });
+        }
+    }
+
+    /**
+     * The mixin classes should call this method to register the property [[removeDiffuseLight]]
+     */
+    protected addShadowProperty(): void {
+        Object.defineProperty(this, "removeDiffuseLight", {
+            get: () => {
+                return this.m_removeDiffuseLight;
+            },
+            set: val => {
+                this.m_removeDiffuseLight = val;
+            }
+        });
+    }
+}
+
 export namespace ExtrusionFeature {
     /**
      * Checks if feature is enabled based on [[ExtrusionFeature]] properties.
@@ -1121,7 +1169,8 @@ export class MapMeshStandardMaterial extends THREE.MeshStandardMaterial
     constructor(
         params?: THREE.MeshStandardMaterialParameters &
             FadingFeatureParameters &
-            ExtrusionFeatureParameters
+            ExtrusionFeatureParameters &
+            ShadowFeatureParameters
     ) {
         super(params);
 
@@ -1134,6 +1183,9 @@ export class MapMeshStandardMaterial extends THREE.MeshStandardMaterial
 
         this.addExtrusionProperties();
         this.applyExtrusionParameters({ ...params, zFightingWorkaround: true });
+
+        this.addShadowProperty();
+        this.applyShadowParameters(params);
     }
 
     clone(): this {
@@ -1199,6 +1251,13 @@ export class MapMeshStandardMaterial extends THREE.MeshStandardMaterial
     set extrusionRatio(value: number) {
         // to be overridden
     }
+    get removeDiffuseLight(): boolean {
+        // to be overriden
+        return false;
+    }
+    set removeDiffuseLight(val: boolean) {
+        // to be overriden
+    }
 
     protected addFadingProperties(): void {
         // to be overridden
@@ -1227,6 +1286,14 @@ export class MapMeshStandardMaterial extends THREE.MeshStandardMaterial
     protected copyExtrusionParameters(source: FadingFeature) {
         // to be overridden
     }
+
+    protected applyShadowParameters(params?: ShadowFeatureParameters) {
+        // to be overriden
+    }
+
+    protected addShadowProperty() {
+        // to be overriden
+    }
     // Mixin declarations end -----------------------------------------------------------
 }
 
@@ -1240,3 +1307,4 @@ applyMixinsWithoutProperties(MapMeshBasicMaterial, [ExtrusionFeatureMixin]);
 applyMixinsWithoutProperties(MapMeshStandardMaterial, [ExtrusionFeatureMixin]);
 applyMixinsWithoutProperties(MapMeshDepthMaterial, [ExtrusionFeatureMixin]);
 applyMixinsWithoutProperties(MapMeshBasicMaterial, [DisplacementFeatureMixin]);
+applyMixinsWithoutProperties(MapMeshStandardMaterial, [ShadowFeatureMixin]);

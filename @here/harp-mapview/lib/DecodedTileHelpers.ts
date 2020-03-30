@@ -84,6 +84,11 @@ export interface MaterialOptions {
      * recompiling them manually later (ThreeJS does not update fog for `RawShaderMaterial`s).
      */
     fog?: boolean;
+
+    /**
+     * Whether shadows are enabled or not, this is required because we change the material used.
+     */
+    shadowsEnabled?: boolean;
 }
 
 /**
@@ -100,7 +105,7 @@ export function createMaterial(
     textureReadyCallback?: (texture: THREE.Texture) => void
 ): THREE.Material | undefined {
     const technique = options.technique;
-    const Constructor = getMaterialConstructor(technique);
+    const Constructor = getMaterialConstructor(technique, options.shadowsEnabled === true);
 
     const settings: { [key: string]: any } = {};
 
@@ -114,6 +119,7 @@ export function createMaterial(
     ) {
         settings.fog = options.fog;
     }
+    settings.removeDiffuseLight = technique.name === "fill";
 
     const material = new Constructor(settings);
 
@@ -372,8 +378,13 @@ export type MaterialConstructor = new (params?: {}) => THREE.Material;
  * Returns a [[MaterialConstructor]] basing on provided technique object.
  *
  * @param technique [[Technique]] object which the material will be based on.
+ * @param shadowsEnabled Whether the material can accept shadows, this is required for some
+ * techniques to decide which material to create.
  */
-export function getMaterialConstructor(technique: Technique): MaterialConstructor | undefined {
+export function getMaterialConstructor(
+    technique: Technique,
+    shadowsEnabled: boolean
+): MaterialConstructor | undefined {
     if (technique.name === undefined) {
         return undefined;
     }
@@ -397,7 +408,7 @@ export function getMaterialConstructor(technique: Technique): MaterialConstructo
             return SolidLineMaterial;
 
         case "fill":
-            return MapMeshBasicMaterial;
+            return shadowsEnabled ? MapMeshStandardMaterial : MapMeshBasicMaterial;
 
         case "squares":
             return THREE.PointsMaterial;
